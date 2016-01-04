@@ -1,0 +1,198 @@
+import java.awt.*;
+
+import javax.swing.*;
+import javax.swing.border.BevelBorder;
+import javax.swing.text.*;
+
+import java.awt.event.*;
+import java.awt.peer.ButtonPeer;
+import java.util.ArrayList;
+
+public class SudokuAppPanel extends JPanel {
+	public JPanel input;
+	public JPanel answer;
+	public JButton button;
+	public JTextField[][] inputText;
+	public JTextField[][] answerText;
+	public int[][] a = new int[9][9];
+
+	SudokuAppPanel() {
+		input = new JPanel(new GridLayout(9, 9));
+		input.setPreferredSize(new Dimension(400, 400));
+		input.setBorder(BorderFactory
+				.createMatteBorder(5, 5, 5, 5, Color.BLACK));
+		input.setBackground(Color.BLACK);
+
+		answer = new JPanel(new GridLayout(9, 9));
+		answer.setBorder(BorderFactory.createMatteBorder(5, 5, 5, 5,
+				Color.BLACK));
+		answer.setBackground(Color.BLACK);
+		answer.setPreferredSize(new Dimension(400, 400));
+
+		inputText = new JTextField[9][9];
+
+		answerText = new JTextField[9][9];
+
+		for (int i = 0; i < 9; i++) {
+			for (int j = 0; j < 9; j++) {
+				answerText[i][j] = new JTextField();
+				inputText[i][j] = new JTextField();
+				answerText[i][j].setColumns(2);
+				inputText[i][j].setColumns(2);
+				answerText[i][j].setHorizontalAlignment(SwingConstants.CENTER);
+				inputText[i][j].setHorizontalAlignment(SwingConstants.CENTER);
+				Font font = new Font("Cambria", Font.PLAIN, 16);
+				inputText[i][j].setFont(font);
+				answerText[i][j].setFont(font);
+				if ((i < 3 && j < 3) || (i > 2 && i < 6 && j > 2 && j < 6)
+						|| (i < 3 && j < 9 && j > 5)
+						|| (j < 3 && i < 9 && i > 5)
+						|| (i > 5 && i < 9 && j > 5 && j < 9)) {
+					inputText[i][j].setBackground(Color.GRAY);
+					answerText[i][j].setBackground(Color.GRAY);
+				} else {
+					inputText[i][j].setBackground(Color.WHITE);
+					answerText[i][j].setBackground(Color.WHITE);
+				}
+				answerText[i][j].setEditable(false);
+				input.add(inputText[i][j]);
+				answer.add(answerText[i][j]);
+			}
+		}
+		button = new JButton("Solve");
+		//button.setBorder(null);
+		button.setBackground(Color.WHITE);
+		//button.setBorder(BorderFactory.createBevelBorder(BevelBorder.LOWERED,Color.gray, Color.gray));
+		button.addActionListener(new ButtonListener());
+		
+		setBackground(Color.LIGHT_GRAY);
+
+		add(input);
+		add(button);
+		add(answer);
+	}
+
+	class ButtonListener implements ActionListener {
+		int[][] puzzle = new int[9][9];
+		ArrayList[][] solver = new ArrayList[9][9];
+
+		public void actionPerformed(ActionEvent evt) {
+			for (int i = 0; i < 9; i++) {
+
+				for (int j = 0; j < 9; j++) {
+					try {
+						puzzle[i][j] = Integer.parseInt(inputText[i][j]
+								.getText());
+					} catch (NumberFormatException e) {
+						puzzle[i][j] = 0;
+					}
+				}
+			}
+			solveIt();
+			for (int q = 0; q < 9; q++) {
+				for (int j = 0; j < 9; j++) {
+					answerText[q][j].setText(String.valueOf(solver[q][j]));
+				}
+			}
+		}
+
+		public void createSolver() {
+			for (int i = 0; i < 9; i++) {
+				for (int j = 0; j < 9; j++) {
+					ArrayList<Integer> cell = new ArrayList<Integer>();
+					for (int k = 1; k <= 9; k++) {
+						cell.add(k);
+					}
+					solver[i][j] = cell;
+				}
+			}
+		}
+
+		public void column() {
+			for (int i = 0; i < 9; i++) { // row
+				for (int j = 0; j < 9; j++) { // column
+					ArrayList<Integer> currCell = solver[i][j];
+					for (int k = 0; k < 9; k++) { // next column
+						if (currCell.contains(puzzle[k][j]) && i != k) {
+							currCell.remove(new Integer(puzzle[k][j]));
+						}
+						if (solver[k][j].size() == 1
+								&& currCell.contains(solver[k][j].get(0))
+								&& i != k) {
+							currCell.remove(solver[k][j].get(0));
+						}
+					}
+				}
+			}
+		}
+
+		public void row() {
+			for (int i = 0; i < 9; i++) { // row
+				for (int j = 0; j < 9; j++) { // column
+					ArrayList<Integer> currCell = solver[i][j];
+					for (int k = 0; k < 9; k++) { // go down row
+						if (currCell.contains(puzzle[i][k]) && j != k) {
+							currCell.remove(new Integer(puzzle[i][k]));
+						}
+						if (solver[i][k].size() == 1
+								&& currCell.contains(solver[i][k].get(0))
+								&& j != k) {
+							currCell.remove(solver[i][k].get(0));
+						}
+					}
+				}
+			}
+		}
+
+		public void fillGivenValues() {
+			for (int i = 0; i < 9; i++) {
+				for (int j = 0; j < 9; j++) {
+					ArrayList<Integer> currCell = solver[i][j];
+					if (puzzle[i][j] != 0) {
+						currCell.clear();
+						currCell.add(new Integer(puzzle[i][j]));
+					}
+				}
+			}
+		}
+
+		public void square() {
+			ArrayList<Integer> numsInSquare;
+			for (int i = 0; i < 9; i += 3) {
+				for (int j = 0; j < 9; j += 3) {
+					numsInSquare = new ArrayList<Integer>();
+					for (int k = 0 + i; k < 3 + i; k++) {
+						for (int l = 0 + j; l < 3 + j; l++) {
+							numsInSquare.add(new Integer(puzzle[k][l]));
+							if (solver[k][l].size() == 1) {
+								numsInSquare.add((Integer) solver[k][l].get(0));
+							}
+						}
+					}
+					for (int k = 0 + i; k < 3 + i; k++) {
+						for (int l = 0 + j; l < 3 + j; l++) {
+							ArrayList<Integer> currCell = solver[k][l];
+							for (int p = 0; p < numsInSquare.size(); p++) {
+								if (currCell.contains(numsInSquare.get(p))
+										&& currCell.size() > 1) {
+									currCell.remove(numsInSquare.get(p));
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+		public void solveIt() {
+			createSolver();
+			fillGivenValues();
+			for (int i = 0; i < 200; i++) {
+				column();
+				row();
+				square();
+			}
+
+		}
+	}
+}
